@@ -1,0 +1,9 @@
+[project]
+name = "educa-callbot-v2"
+version = "0.1.0"
+requires-python = ">=3.10"
+dependencies = [
+    "hush-ai>=0.1.5",
+    "python-dotenv>=1.0",
+]
+

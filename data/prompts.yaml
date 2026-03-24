@@ -1,0 +1,669 @@
+# ══════════════════════════════════════════════════════════════════════════════
+# EDUCA REMINDER PARENTS - PROMPT TEMPLATES v1.1
+# ══════════════════════════════════════════════════════════════════════════════
+#
+# TỔNG QUAN:
+# Module này chứa tất cả prompt templates cho Educa Reminder Parents Agent.
+# Agent dùng để gọi điện nhắc phụ huynh khi học sinh chưa vào lớp học online.
+#
+# CHIẾN LƯỢC PROMPT:
+# 1. System Prompt: Ngắn gọn, định nghĩa vai trò agent
+# 2. Intent Detection: "Teach first, ask after" với định nghĩa + ví dụ
+# 3. Response Generation: Template-based + LLM fallback
+# 4. Rule-based Generation: Ưu tiên rule để tiết kiệm tokens
+#
+# Version: 1.1.0
+# Author: AI Assistant
+# Date: 2025-12-11
+# Updated: 2026-02-01 - Added multi-variation templates
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#                      INTENT DEFINITIONS
+# ══════════════════════════════════════════════════════════════════════════════
+
+intent_definitions:
+  need_support:
+    description: "Phụ huynh cho biết cần hỗ trợ hoặc có vấn đề cần giúp đỡ"
+    examples:
+      - "ừ có hỗ trợ chị với"
+      - "giúp em với"
+      - "cần hỗ trợ"
+      - "có vấn đề cần giúp"
+
+  student_joining:
+    description: "Phụ huynh thông báo học sinh đang vào lớp hoặc đã nhớ lịch"
+    examples:
+      - "bé đang vào rồi em"
+      - "con đang học rồi"
+      - "nó đang vào lớp"
+      - "biết rồi đang cho con vào"
+
+  already_absent:
+    description: "Phụ huynh nói đã báo xin nghỉ từ trước với ban giáo vụ"
+    examples:
+      - "chị báo ban giáo vụ xin nghỉ cho con rồi mà em"
+      - "đã xin nghỉ rồi"
+      - "báo nghỉ rồi mà"
+
+  request_absent:
+    description: "Phụ huynh muốn xin nghỉ cho con hôm nay"
+    examples:
+      - "hôm nay nhà chị có việc cho con nghỉ hôm nay nha em"
+      - "cho con nghỉ buổi này"
+      - "hôm nay con không học được"
+
+  wrong_schedule:
+    description: "Phụ huynh nói lịch học sai, nhầm lịch hoặc đã đổi lịch"
+    examples:
+      - "chị có đăng ký cho con học giờ này đâu em"
+      - "sai lịch rồi"
+      - "con học giờ khác mà"
+      - "đã đổi lịch rồi"
+
+  cancel_course:
+    description: "Phụ huynh thông báo đã hủy khóa học hoặc bảo lưu"
+    examples:
+      - "chị không cho học nữa em ơi"
+      - "chị cho bé nghỉ hẳn rồi"
+      - "chị bảo lưu cho con rồi mà"
+
+  technical_issue:
+    description: "Học sinh gặp lỗi kỹ thuật không vào được lớp"
+    examples:
+      - "con chị vào mãi không được em ạ"
+      - "con không thấy lớp để vào"
+      - "bị lỗi không vào được"
+
+  wrong_student_name:
+    description: "Phụ huynh nói tên học sinh không đúng, sai tên"
+    examples:
+      - "con chị là Minh chứ không phải Hùng em ơi"
+      - "sai tên rồi"
+      - "tên con là ..."
+
+  wrong_support_number:
+    description: "Phụ huynh nói số điện thoại này là đăng ký hộ, không phải số chính"
+    examples:
+      - "số này anh đăng ký hộ thôi bạn em ơi"
+      - "số này không phải số liên hệ"
+      - "liên hệ số khác"
+
+  wrong_number:
+    description: "Phụ huynh KHẲNG ĐỊNH nhầm máy, không có con học ở đây, hoặc tố cáo lừa đảo. LƯU Ý: Nếu khách hàng chỉ hỏi 'ai đấy', 'ai vậy', 'ai gọi đấy' thì KHÔNG phải wrong_number mà là unclear"
+    examples:
+      - "nhầm máy rồi em ơi có học gì đâu"
+      - "tôi không có con"
+      - "không ai học gì cả"
+      - "lừa đảo à"
+
+  confirm:
+    description: "Phụ huynh xác nhận, đồng ý hoặc trả lời khẳng định"
+    examples:
+      - "vâng đúng rồi"
+      - "ừ anh là bố nó"
+      - "phải rồi"
+      - "đúng ạ"
+      - "ok"
+      - "được"
+
+  busy:
+    description: "Phụ huynh đang bận, không tiện nói chuyện, yêu cầu gọi lại sau"
+    examples:
+      - "đang bận"
+      - "bận lắm lúc khác gọi nhé"
+      - "không tiện nói chuyện"
+      - "gọi nhiều quá"
+
+  deny:
+    description: "Phụ huynh từ chối hoặc không đồng ý"
+    examples:
+      - "không"
+      - "không được"
+      - "không muốn"
+      - "chẳng muốn"
+
+  unclear:
+    description: "Phụ huynh nói không rõ, hỏi lại, chưa nghe rõ, hoặc hỏi ai đang gọi"
+    examples:
+      - "gì cơ em"
+      - "sao ạ"
+      - "hả"
+      - "chưa nghe rõ"
+      - "ai đấy"
+      - "ai vậy"
+      - "ai gọi đấy"
+
+  fallback:
+    description: "Không xác định được ý định, câu nói không liên quan đến các intent khác"
+    examples:
+      - "trời mưa quá"
+      - "..."
+
+  this_number:
+    description: "Phụ huynh xác nhận dùng số điện thoại này để liên hệ"
+    examples:
+      - "số này luôn em"
+      - "liên hệ số này được"
+
+  read_phone:
+    description: "Phụ huynh đọc số điện thoại mới (chuỗi 10 số)"
+    examples:
+      - "số không chín một hai một hai ba một hai ba"
+      - "không chín tám bảy sáu năm bốn ba hai một"
+
+  other_number:
+    description: "Phụ huynh nói dùng số điện thoại khác"
+    examples:
+      - "số khác"
+      - "liên hệ số khác"
+
+  invalid_phone:
+    description: "Phụ huynh đọc số điện thoại sai định dạng (không đủ 10 số hoặc không phải số)"
+    examples:
+      - "số không chín tám bảy sáu"
+      - "một hai ba bốn năm"
+
+  student_pickup:
+    description: "Con/Học sinh nghe máy hộ bố mẹ, không phải phụ huynh đang nói"
+    examples:
+      - "con đang cầm máy của bố ạ"
+      - "con nghe máy hộ mẹ"
+      - "dạ con đây ạ"
+      - "mẹ con không có ở đây"
+      - "dạ con nè"
+
+  ask_about_program:
+    description: "Phụ huynh muốn hỏi thêm về chương trình học, học phí, khuyến mãi"
+    examples:
+      - "à chị muốn hỏi thêm cái này"
+      - "cho chị hỏi về học phí"
+      - "chương trình này như nào vậy em"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#                      STATE -> ALLOWED INTENTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+state_allowed_intents:
+  REMINDER:
+    - need_support
+    - fallback
+    - unclear
+    - busy
+    - deny
+    - student_joining
+    - already_absent
+    - request_absent
+    - cancel_course
+    - wrong_schedule
+    - technical_issue
+    - ask_about_program
+    - wrong_student_name
+    - wrong_support_number
+    - wrong_number
+    - student_pickup
+
+  CONFIRM_CUSTOMER:
+    - confirm
+    - busy
+    - deny
+    - unclear
+    - fallback
+    - wrong_number
+
+  ASK_PHONE:
+    - other_number
+    - invalid_phone
+    - fallback
+    - this_number
+    - read_phone
+
+  TALK_WITH_STUDENT:
+    - need_support
+    - fallback
+    - unclear
+    - student_joining
+    - already_absent
+    - request_absent
+    - technical_issue
+    - wrong_schedule
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#                      FEW-SHOT EXAMPLES
+# ══════════════════════════════════════════════════════════════════════════════
+
+few_shot_examples:
+  REMINDER:
+    - agent: "Dạ chào anh/chị, em gọi từ chương trình ây ai cờ lát nhắc lịch học của con..."
+      customer: "bé đang vào rồi em"
+      intent: "student_joining"
+    - agent: "Dạ chào anh/chị, em gọi từ chương trình ây ai cờ lát nhắc lịch học của con..."
+      customer: "dạ con đây ạ, mẹ con đi vắng rồi"
+      intent: "student_pickup"
+    - agent: "mà chưa thấy bé vào lớp không biết gia đình có vấn đề gì cần em hỗ trợ không ạ?"
+      customer: "thôi chị đang bận lắm nhé"
+      intent: "busy"
+
+  CONFIRM_CUSTOMER:
+    - agent: "Anh/chị có phải là phụ huynh của bé Minh không ạ?"
+      customer: "vâng đúng rồi"
+      intent: "confirm"
+
+  ASK_PHONE:
+    - agent: "Anh/chị cho em xin số điện thoại liên hệ được không ạ?"
+      customer: "số này luôn em"
+      intent: "this_number"
+
+  TALK_WITH_STUDENT:
+    - agent: "Dạ chào con, con có buổi học lúc 19h nhưng chưa vào lớp, con vào lớp học giúp cô nhé."
+      customer: "dạ con đang vào ạ"
+      intent: "student_joining"
+    - agent: "Con vào lớp học giúp cô nhé."
+      customer: "dạ hôm nay con nghỉ ạ"
+      intent: "request_absent"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#                      PROMPT TEMPLATES
+# ══════════════════════════════════════════════════════════════════════════════
+
+prompts:
+  system_prompt: |
+    Bạn là {agent_name}, nhân viên Edupia gọi nhắc lịch học cho phụ huynh.
+    Học sinh: {student_name}. Chương trình: {program_name}.
+    Giọng điệu: Thân thiện, lịch sự, ngắn gọn. Trả lời bằng tiếng Việt.
+
+  analyzer_system_prompt: |
+    You are an expert NLP classification system.
+    Your sole task is to analyze conversational dialogue and classify the exact intent of the customer.
+    You must strictly follow the rules, choose ONLY from the allowed intents, and output your answer wrapped in <result> tags without any conversational text.
+
+  intent_prompt: |
+    <task_instructions>
+    Phân loại ý định (intent) của phụ huynh trong cuộc gọi nhắc lịch học.
+    Đọc kỹ ngữ cảnh cuộc gọi, định nghĩa các ý định, và phân loại câu trả lời của phụ huynh vào MỘT ý định duy nhất.
+    </task_instructions>
+
+    <call_context>
+    - Chương trình: {program_name}
+    - Học sinh: {student_name}
+    - Lịch học: {class_time}
+    - Call State: {state}
+    </call_context>
+
+    <allowed_intents>
+    {intent_definitions_str}
+    </allowed_intents>
+
+    <rules>
+    1. CHỈ ĐƯỢC PHÉP chọn 1 intent nằm trong danh sách sau: {allowed_intents_str}
+    2. Nếu phụ huynh nói gặp lỗi vào lớp và nhờ hỗ trợ -> Ưu tiên chọn 'technical_issue' thay vì 'need_support'.
+    3. TRẢ KẾT QUẢ VÀO TRONG THẺ <result></result>. Không thêm bất kỳ giải thích nào.
+    </rules>
+
+    {few_shot_str}
+    <conversation>
+    <agent>"{agent_speech}"</agent>
+    <customer>"{customer_speech}"</customer>
+    </conversation>
+
+    Phân loại intent cho câu nói của phụ huynh (Bọc kết quả trong <result></result>):
+
+  extra_data_prompt: |
+    Phân tích đoạn hội thoại và trích xuất thông tin:
+
+    ### TRANSCRIPT ###
+    {conversation_transcript}
+
+    ### YÊU CẦU ###
+    Trích xuất:
+    1. Số điện thoại mới (nếu phụ huynh cung cấp)
+    2. Kết quả cuộc gọi (đồng ý vào học, xin nghỉ, lỗi kỹ thuật, nhầm máy, etc.)
+
+    Trả lời dạng JSON:
+    {{"phone_number": "...", "result": "..."}}
+
+    RESPONSE:
+
+  best_response_prompt: |
+    Bạn là {agent_name}, nhân viên Edupia gọi nhắc lịch học cho phụ huynh.
+
+    <Thông tin>
+    - Học sinh: {student_name}
+    - Lịch học: {class_time}
+    - Chương trình: {program_name}
+    - Hotline hỗ trợ: {hotline}
+    - Trạng thái: {current_state}
+    - Mục tiêu: {guidance}
+    </Thông tin>
+
+    <Lịch sử thoại>
+    - Agent: {last_agent_msg}
+    - Phụ huynh: {last_customer_msg}
+    </Lịch sử thoại>
+
+    <Yêu cầu>
+    Viết tiếp câu trả lời của Agent.
+    - Giọng điệu: Thân thiện, lịch sự, ngắn gọn
+    - Xưng hô: Em (agent) - Anh/Chị (phụ huynh)
+    - Độ dài: 1-2 câu ngắn
+    </Yêu cầu>
+
+    <Câu mở đầu>{selected_opening}</Câu mở đầu>
+    <Phần còn lại>
+
+  faq_response_prompt: |
+    Bạn là {agent_name}, nhân viên Edupia.
+
+    Phụ huynh hỏi về chương trình học. Hãy trả lời ngắn gọn và hướng dẫn liên hệ hotline {hotline} để được tư vấn chi tiết.
+
+    <Câu mở đầu>{selected_opening}</Câu mở đầu>
+    <Phần còn lại>
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#                      STATE GUIDANCE (for best_response_prompt)
+# ══════════════════════════════════════════════════════════════════════════════
+
+state_guidance:
+  REMINDER: "Nhắc phụ huynh về lịch học của con và yêu cầu cho con vào lớp."
+  CONFIRM_CUSTOMER: "Xác nhận đúng phụ huynh của học sinh."
+  ASK_PHONE: "Hỏi số điện thoại liên hệ chính xác của phụ huynh."
+  TALK_WITH_STUDENT: "Nhắc học sinh vào lớp học."
+  TRANSFER_HOTLINE: "Hướng dẫn liên hệ hotline để được hỗ trợ."
+  FINISH: "Kết thúc cuộc gọi lịch sự."
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#                      RESPONSE OPENINGS (for best_response_prompt)
+# ══════════════════════════════════════════════════════════════════════════════
+
+response_openings:
+  - "Dạ vâng ạ"
+  - "Dạ"
+  - "Vâng ạ"
+  - "Dạ em hiểu ạ"
+
+faq_opening: "Dạ"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#                      CALL RESULT MAPPING
+# ══════════════════════════════════════════════════════════════════════════════
+
+call_result_mapping:
+  # ═══════════════════════════════════════════════════════════════════
+  #                     THÀNH CÔNG - Học sinh vào lớp
+  # ═══════════════════════════════════════════════════════════════════
+  REMINDER__student_joining:
+    code: "SUCCESS_JOINING"
+    status: "success"
+    comment: "Phụ huynh xác nhận học sinh đang vào lớp"
+    action: "Học sinh tham gia buổi học"
+
+  REMINDER__confirm:
+    code: "SUCCESS_CONFIRMED"
+    status: "success"
+    comment: "Phụ huynh xác nhận và nhắc học sinh vào lớp"
+    action: "Phụ huynh đồng ý nhắc con vào học"
+
+  CONFIRM_CUSTOMER__confirm:
+    code: "SUCCESS_CONFIRMED"
+    status: "success"
+    comment: "Xác nhận đúng phụ huynh, đã nhắc vào lớp"
+    action: "Phụ huynh đồng ý nhắc con vào học"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #                     XIN NGHỈ - Phụ huynh báo nghỉ
+  # ═══════════════════════════════════════════════════════════════════
+  REMINDER__already_absent:
+    code: "ABSENT_ALREADY"
+    status: "absent"
+    comment: "Phụ huynh đã báo nghỉ trước đó"
+    action: "Ghi nhận đã báo nghỉ"
+
+  REMINDER__request_absent:
+    code: "ABSENT_REQUEST"
+    status: "absent"
+    comment: "Phụ huynh xin nghỉ cho con buổi hôm nay"
+    action: "Ghi nhận xin nghỉ buổi học"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #                     CHUYỂN HOTLINE - Cần hỗ trợ thêm
+  # ═══════════════════════════════════════════════════════════════════
+  REMINDER__need_support:
+    code: "TRANSFER_SUPPORT"
+    status: "transfer"
+    comment: "Phụ huynh cần hỗ trợ, chuyển hotline"
+    action: "Chuyển hotline hỗ trợ"
+
+  REMINDER__technical_issue:
+    code: "TRANSFER_TECHNICAL"
+    status: "transfer"
+    comment: "Học sinh gặp lỗi kỹ thuật không vào được"
+    action: "Chuyển hotline kỹ thuật"
+
+  REMINDER__wrong_schedule:
+    code: "TRANSFER_SCHEDULE"
+    status: "transfer"
+    comment: "Phụ huynh báo sai/nhầm lịch học"
+    action: "Chuyển hotline kiểm tra lịch"
+
+  REMINDER__cancel_course:
+    code: "TRANSFER_CANCEL"
+    status: "transfer"
+    comment: "Phụ huynh đã hủy/bảo lưu khóa học"
+    action: "Chuyển hotline xác nhận"
+
+  TRANSFER_HOTLINE__confirm:
+    code: "TRANSFER_CONFIRMED"
+    status: "transfer"
+    comment: "Đã hướng dẫn phụ huynh liên hệ hotline"
+    action: "Hoàn thành chuyển hotline"
+
+  TRANSFER_HOTLINE__fallback:
+    code: "TRANSFER_FALLBACK"
+    status: "transfer"
+    comment: "Đã cung cấp hotline cho phụ huynh"
+    action: "Hoàn thành chuyển hotline"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #                     NHẦM MÁY / SAI THÔNG TIN
+  # ═══════════════════════════════════════════════════════════════════
+  REMINDER__wrong_number:
+    code: "WRONG_NUMBER"
+    status: "wrong_contact"
+    comment: "Nhầm máy / Không phải phụ huynh học sinh"
+    action: "Kết thúc - nhầm số"
+
+  CONFIRM_CUSTOMER__wrong_number:
+    code: "WRONG_NUMBER"
+    status: "wrong_contact"
+    comment: "Xác nhận không phải phụ huynh học sinh"
+    action: "Kết thúc - nhầm số"
+
+  REMINDER__wrong_student_name:
+    code: "WRONG_STUDENT"
+    status: "wrong_contact"
+    comment: "Sai tên học sinh, cần xác nhận lại"
+    action: "Chuyển xác nhận khách hàng"
+
+  REMINDER__wrong_support_number:
+    code: "WRONG_SUPPORT_NUMBER"
+    status: "need_update"
+    comment: "Số điện thoại đăng ký hộ, cần số liên hệ chính"
+    action: "Hỏi số điện thoại phụ huynh"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #                     CẬP NHẬT SỐ ĐIỆN THOẠI
+  # ═══════════════════════════════════════════════════════════════════
+  ASK_PHONE__this_number:
+    code: "PHONE_CONFIRMED"
+    status: "phone_updated"
+    comment: "Phụ huynh xác nhận dùng số hiện tại"
+    action: "Giữ nguyên số điện thoại"
+
+  ASK_PHONE__read_phone:
+    code: "PHONE_NEW"
+    status: "phone_updated"
+    comment: "Phụ huynh cung cấp số điện thoại mới"
+    action: "Cập nhật số điện thoại mới"
+
+  ASK_PHONE__other_number:
+    code: "PHONE_REQUESTED"
+    status: "phone_pending"
+    comment: "Phụ huynh muốn dùng số khác"
+    action: "Chờ cung cấp số mới"
+
+  ASK_PHONE__invalid_phone:
+    code: "PHONE_INVALID"
+    status: "phone_error"
+    comment: "Số điện thoại không hợp lệ"
+    action: "Chuyển hotline cập nhật"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #                     BẬN / KHÔNG TIỆN
+  # ═══════════════════════════════════════════════════════════════════
+  REMINDER__busy:
+    code: "BUSY"
+    status: "callback"
+    comment: "Phụ huynh đang bận, không tiện nói chuyện"
+    action: "Hẹn gọi lại sau"
+
+  CONFIRM_CUSTOMER__busy:
+    code: "BUSY"
+    status: "callback"
+    comment: "Phụ huynh bận, không tiện nói chuyện"
+    action: "Hẹn gọi lại sau"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #                     KHÔNG XÁC ĐỊNH / FALLBACK
+  # ═══════════════════════════════════════════════════════════════════
+  REMINDER__fallback:
+    code: "UNCLEAR"
+    status: "unclear"
+    comment: "Không xác định được ý định phụ huynh"
+    action: "Chuyển xác nhận khách hàng"
+
+  REMINDER__unclear:
+    code: "UNCLEAR"
+    status: "unclear"
+    comment: "Phụ huynh nói không rõ"
+    action: "Hỏi lại xác nhận"
+
+  CONFIRM_CUSTOMER__fallback:
+    code: "FALLBACK_CONFIRM"
+    status: "unclear"
+    comment: "Không xác nhận được phụ huynh"
+    action: "Kết thúc - không xác nhận"
+
+  CONFIRM_CUSTOMER__unclear:
+    code: "UNCLEAR_CONFIRM"
+    status: "unclear"
+    comment: "Phụ huynh trả lời không rõ khi xác nhận"
+    action: "Hỏi lại xác nhận"
+
+  ASK_PHONE__fallback:
+    code: "FALLBACK_PHONE"
+    status: "unclear"
+    comment: "Không nhận được số điện thoại"
+    action: "Giữ số hiện tại"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #                     HỌC SINH NGHE MÁY / HỎI CHƯƠNG TRÌNH
+  # ═══════════════════════════════════════════════════════════════════
+  REMINDER__student_pickup:
+    code: "STUDENT_PICKUP"
+    status: "student_contact"
+    comment: "Học sinh nghe máy hộ phụ huynh"
+    action: "Chuyển trao đổi với học sinh"
+
+  REMINDER__ask_about_program:
+    code: "TRANSFER_INQUIRY"
+    status: "transfer"
+    comment: "Phụ huynh muốn hỏi về chương trình"
+    action: "Chuyển hotline tư vấn"
+
+  # ═══════════════════════════════════════════════════════════════════
+  #                     TRAO ĐỔI VỚI HỌC SINH
+  # ═══════════════════════════════════════════════════════════════════
+  TALK_WITH_STUDENT__student_joining:
+    code: "SUCCESS_STUDENT_JOINING"
+    status: "success"
+    comment: "Học sinh xác nhận đang vào lớp"
+    action: "Học sinh tham gia buổi học"
+
+  TALK_WITH_STUDENT__already_absent:
+    code: "ABSENT_STUDENT_NOTIFIED"
+    status: "absent"
+    comment: "Học sinh báo đã nghỉ"
+    action: "Ghi nhận đã báo nghỉ"
+
+  TALK_WITH_STUDENT__request_absent:
+    code: "ABSENT_STUDENT_REQUEST"
+    status: "absent"
+    comment: "Học sinh xin nghỉ hôm nay"
+    action: "Ghi nhận xin nghỉ buổi học"
+
+  TALK_WITH_STUDENT__technical_issue:
+    code: "TRANSFER_STUDENT_TECHNICAL"
+    status: "transfer"
+    comment: "Học sinh gặp lỗi kỹ thuật"
+    action: "Chuyển hotline kỹ thuật"
+
+  TALK_WITH_STUDENT__wrong_schedule:
+    code: "TRANSFER_STUDENT_SCHEDULE"
+    status: "transfer"
+    comment: "Học sinh báo sai lịch"
+    action: "Chuyển hotline kiểm tra lịch"
+
+  TALK_WITH_STUDENT__need_support:
+    code: "TRANSFER_STUDENT_SUPPORT"
+    status: "transfer"
+    comment: "Học sinh cần hỗ trợ"
+    action: "Chuyển hotline hỗ trợ"
+
+  TALK_WITH_STUDENT__unclear:
+    code: "UNCLEAR_STUDENT"
+    status: "unclear"
+    comment: "Học sinh nói không rõ"
+    action: "Hỏi lại học sinh"
+
+  TALK_WITH_STUDENT__fallback:
+    code: "FALLBACK_STUDENT"
+    status: "unclear"
+    comment: "Không hiểu ý học sinh"
+    action: "Nhắc học sinh vào lớp"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#                      DEFAULT CALL RESULT
+# ══════════════════════════════════════════════════════════════════════════════
+
+default_call_result:
+  code: "UNKNOWN"
+  status: "unknown"
+  comment: "Kết quả cuộc gọi không xác định"
+  action: "Cần kiểm tra lại"
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+#                      CRM STATUS MAPPING
+# ══════════════════════════════════════════════════════════════════════════════
+
+crm_status_mapping:
+  success: "COMPLETED_SUCCESS"
+  absent: "COMPLETED_ABSENT"
+  transfer: "COMPLETED_TRANSFER"
+  wrong_contact: "COMPLETED_WRONG_NUMBER"
+  need_update: "COMPLETED_NEED_UPDATE"
+  phone_updated: "COMPLETED_PHONE_UPDATED"
+  phone_pending: "PENDING_PHONE"
+  phone_error: "COMPLETED_PHONE_ERROR"
+  callback: "CALLBACK_REQUESTED"
+  unclear: "COMPLETED_UNCLEAR"
+  student_contact: "COMPLETED_STUDENT_CONTACT"
+  unknown: "UNKNOWN"
