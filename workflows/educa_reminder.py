@@ -7,7 +7,7 @@ Flow: normalize → quick_detect → [classify_intent | skip] → merge_intent
 from hush.core import graph, PARENT, START, END
 from hush.core.ops.flow import if_
 
-from hush.providers.ops import extract, chat
+from hush.providers.ops import ask, chat
 
 from ops.normalize import normalize_text
 from ops.quick_detect import quick_detect
@@ -45,7 +45,7 @@ def educa_workflow(
         agent_speech=agent_speech,
         script_data=script_data,
     )
-    classify = extract(
+    classify = ask(
         resource="default",
         template={"system": "{analyzer_system_prompt}", "user": "{intent_prompt}"},
         fields=["result: str"],
