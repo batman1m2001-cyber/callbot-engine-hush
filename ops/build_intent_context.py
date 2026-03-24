@@ -77,11 +77,11 @@ def build_intent_context(
         customer_speech=normalized_text,
     ).strip()
 
-    # Validators list with @fallback as default
-    validators_list = [i for i in allowed_intents if i != "fallback"] + ["@fallback"]
+    # Validators dict ready for ParserOp — @fallback is default when all retries exhausted
+    validators = {"result": [i for i in allowed_intents if i != "fallback"] + ["@fallback"]}
 
     return {
         "analyzer_system_prompt": _PROMPTS["analyzer_system_prompt"].strip(),
         "intent_prompt": intent_prompt,
-        "validators_list": validators_list,
+        "validators": validators,
     }

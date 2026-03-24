@@ -51,7 +51,7 @@ def educa_workflow(
         fields=["result: str"],
         parser="xml",
         retry=1,
-        validators={"result": ctx["validators_list"]},
+        validators=ctx["validators"],
         analyzer_system_prompt=ctx["analyzer_system_prompt"],
         intent_prompt=ctx["intent_prompt"],
     )
