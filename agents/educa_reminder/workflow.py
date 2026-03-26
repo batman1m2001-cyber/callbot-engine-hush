@@ -9,13 +9,13 @@ from hush.core.ops.flow import if_
 
 from hush.providers.ops import ask, chat
 
-from ops.normalize import normalize_text
-from ops.quick_detect import quick_detect
-from ops.build_intent_context import build_intent_context
-from ops.state_transition import state_transition
-from ops.generate_rule import generate_rule
-from ops.merge import merge_intent, merge_response
-from ops.skip import skip_classify, skip_generate
+from agents.educa_reminder.ops.normalize import normalize_text
+from agents.educa_reminder.ops.quick_detect import quick_detect
+from agents.educa_reminder.ops.build_intent_context import build_intent_context
+from agents.educa_reminder.ops.state_transition import state_transition
+from agents.educa_reminder.ops.generate_rule import generate_rule
+from agents.educa_reminder.ops.merge import merge_intent, merge_response
+from agents.educa_reminder.ops.skip import skip_classify, skip_generate
 
 
 @graph

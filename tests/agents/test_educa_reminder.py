@@ -4,11 +4,13 @@ import asyncio
 import os
 from pathlib import Path
 
+ROOT = Path(__file__).parent.parent.parent
+
+from dotenv import load_dotenv
+load_dotenv(ROOT / ".env")
+
 from hush.core import Hush
-
-ROOT = Path(__file__).parent.parent
-
-from workflows.educa_reminder import educa_workflow
+from agents.educa_reminder.workflow import educa_workflow
 
 
 SCRIPT_DATA = {

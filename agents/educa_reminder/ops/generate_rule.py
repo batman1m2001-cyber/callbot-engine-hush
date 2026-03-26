@@ -8,7 +8,7 @@ import yaml
 from hush.core.ops import op
 
 # Load response templates
-from data.response_templates import (
+from agents.educa_reminder.data.response_templates import (
     STATE_GREETINGS,
     RESPONSE_TEMPLATES,
     FINISH_RESPONSE_TEMPLATES,

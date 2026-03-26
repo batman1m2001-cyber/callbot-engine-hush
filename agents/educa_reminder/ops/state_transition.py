@@ -2,7 +2,7 @@
 
 from hush.core.ops import op
 
-from data.state_config import (
+from agents.educa_reminder.data.state_config import (
     IMMEDIATE_END_INTENTS,
     MAX_RETRIES,
     RETRY_INTENTS,

@@ -2,7 +2,7 @@
 
 from hush.core.ops import op
 
-from data.state_config import FALLBACK_RESPONSES
+from agents.educa_reminder.data.state_config import FALLBACK_RESPONSES
 
 
 @op
