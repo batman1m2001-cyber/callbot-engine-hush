@@ -195,7 +195,7 @@ version = "0.1.1"
 source = { virtual = "." }
 dependencies = [
     { name = "hush-icore" },
-    { name = "hush-providers", extra = ["triton"] },
+    { name = "hush-providers" },
     { name = "inflect" },
     { name = "onnxruntime", version = "1.24.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "onnxruntime", version = "1.24.4", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
@@ -203,18 +203,20 @@ dependencies = [
     { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
     { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "soxr" },
+    { name = "tritonclient", extra = ["grpc"] },
     { name = "unidecode" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "hush-icore", editable = "../Hush-ai/python/hush-icore" },
-    { name = "hush-providers", extras = ["triton"], editable = "../Hush-ai/python/hush-providers" },
+    { name = "hush-providers", editable = "../Hush-ai/python/hush-providers" },
     { name = "inflect", specifier = ">=7.0.0" },
     { name = "onnxruntime", specifier = ">=1.24.3" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "scipy", specifier = ">=1.15.3" },
     { name = "soxr", specifier = ">=1.0.0" },
+    { name = "tritonclient", extras = ["grpc"], specifier = ">=2.50" },
     { name = "unidecode", specifier = ">=1.4.0" },
 ]
 
@@ -469,7 +471,7 @@ wheels = [
 
 [[package]]
 name = "hush-icore"
-version = "0.1.11"
+version = "0.2.0"
 source = { editable = "../Hush-ai/python/hush-icore" }
 dependencies = [
     { name = "orjson" },
@@ -512,11 +514,6 @@ dependencies = [
     { name = "pyyaml" },
 ]
 
-[package.optional-dependencies]
-triton = [
-    { name = "tritonclient", extra = ["grpc"] },
-]
-
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.8" },
@@ -552,9 +549,8 @@ requires-dist = [
     { name = "torch", marker = "extra == 'huggingface'", specifier = ">=2.0" },
     { name = "transformers", marker = "extra == 'all'", specifier = ">=4.30" },
     { name = "transformers", marker = "extra == 'huggingface'", specifier = ">=4.30" },
-    { name = "tritonclient", extras = ["grpc"], marker = "extra == 'triton'", specifier = ">=2.50" },
 ]
-provides-extras = ["openai", "gemini", "bedrock", "onnx", "huggingface", "embeddings", "rerankers", "triton", "all-light", "all", "dev"]
+provides-extras = ["openai", "gemini", "bedrock", "onnx", "huggingface", "embeddings", "rerankers", "all-light", "all", "dev"]
 
 [package.metadata.requires-dev]
 dev = [

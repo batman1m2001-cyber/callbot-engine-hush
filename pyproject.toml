@@ -4,7 +4,8 @@ version = "0.1.1"
 requires-python = ">=3.10"
 dependencies = [
     "hush-icore",
-    "hush-providers[triton]",
+    "hush-providers",
+    "tritonclient[grpc]>=2.50",
     "onnxruntime>=1.24.3",
     "python-dotenv>=1.0",
     "scipy>=1.15.3",
