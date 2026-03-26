@@ -6,9 +6,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent.parent.parent
 
-from dotenv import load_dotenv
-load_dotenv(ROOT / ".env")
-
 from hush.core import Hush
 from agents.educa_reminder.workflow import educa_workflow
 
