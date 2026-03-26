@@ -1,12 +1,18 @@
 [project]
-name = "educa-callbot-v2"
-version = "0.1.0"
+name = "callbot-engine-hush"
+version = "0.1.1"
 requires-python = ">=3.10"
 dependencies = [
-    "hush-ai>=0.1.5",
+    "hush-icore",
+    "hush-providers[triton]",
     "onnxruntime>=1.24.3",
     "python-dotenv>=1.0",
     "scipy>=1.15.3",
     "soxr>=1.0.0",
+    "unidecode>=1.4.0",
+    "inflect>=7.0.0",
 ]
 
+[tool.uv.sources]
+hush-icore = { path = "../Hush-ai/python/hush-icore", editable = true }
+hush-providers = { path = "../Hush-ai/python/hush-providers", editable = true }
