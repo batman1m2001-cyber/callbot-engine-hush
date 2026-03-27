@@ -2,7 +2,7 @@
 
 IMMEDIATE_END_INTENTS = {"student_joining", "already_absent", "request_absent", "cancel_course"}
 TRANSFER_HOTLINE_INTENTS = {"technical_issue", "wrong_schedule", "ask_about_program"}
-RETRY_INTENTS = {"need_support", "busy", "unclear", "fallback", "other_number", "invalid_phone"}
+RETRY_INTENTS = {"need_support", "busy", "unclear", "fallback", "silent", "other_number", "invalid_phone"}
 TERMINAL_STATES = {"FINISH", "TRANSFER_HOTLINE"}
 
 MAX_RETRIES = {
@@ -10,6 +10,7 @@ MAX_RETRIES = {
     "busy": 2,
     "unclear": 3,
     "fallback": 2,
+    "silent": 2,
     "other_number": 2,
     "invalid_phone": 2,
 }

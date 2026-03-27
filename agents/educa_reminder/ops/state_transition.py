@@ -84,24 +84,71 @@ def state_transition(
         else:
             new_state = "ASK_PHONE"
 
-    # Retry intents (need_support, busy, unclear, fallback)
-    elif intent in RETRY_INTENTS:
-        max_r = MAX_RETRIES.get(intent, 2)
+    # === need_support with retry ===
+    elif intent == "need_support":
         retry_count = counts.get(intent, 0)
+        if retry_count >= MAX_RETRIES.get(intent, 2):
+            new_state = "TRANSFER_HOTLINE"
+            should_transfer = True
+        elif current_state == "TALK_WITH_STUDENT":
+            new_state = "TALK_WITH_STUDENT"
+        else:
+            new_state = "REMINDER"
 
-        if retry_count >= max_r:
-            # Exceeded retries
-            if intent == "need_support":
-                new_state = "TRANSFER_HOTLINE"
-                should_transfer = True
-            elif current_state == "TALK_WITH_STUDENT" and intent == "fallback":
-                new_state = "TRANSFER_HOTLINE"
-                should_transfer = True
-            else:
+    # === busy with retry ===
+    elif intent == "busy":
+        retry_count = counts.get(intent, 0)
+        if retry_count >= MAX_RETRIES.get(intent, 2):
+            new_state = "FINISH"
+            should_hangup = True
+        elif current_state == "CONFIRM_CUSTOMER":
+            new_state = "REMINDER"
+        else:
+            new_state = current_state
+
+    # === fallback / unclear / silent with state-specific retry ===
+    elif intent in ("fallback", "unclear", "silent"):
+        retry_count = counts.get(intent, 0)
+        max_r = MAX_RETRIES.get(intent, 2)
+
+        if current_state == "REMINDER":
+            if intent in ("fallback", "silent") and retry_count >= 2:
                 new_state = "FINISH"
                 should_hangup = True
+            elif intent == "unclear" and retry_count >= 3:
+                new_state = "FINISH"
+                should_hangup = True
+            else:
+                new_state = "REMINDER"
+
+        elif current_state == "CONFIRM_CUSTOMER":
+            if intent in ("fallback", "silent") and retry_count >= 2:
+                new_state = "FINISH"
+                should_hangup = True
+            elif intent == "unclear" and retry_count >= 3:
+                new_state = "FINISH"
+                should_hangup = True
+            else:
+                new_state = "CONFIRM_CUSTOMER"
+
+        elif current_state == "ASK_PHONE":
+            if retry_count >= max_r:
+                new_state = "FINISH"
+                should_hangup = True
+            else:
+                new_state = "ASK_PHONE"
+
+        elif current_state == "TALK_WITH_STUDENT":
+            if intent in ("fallback", "silent") and retry_count >= 2:
+                new_state = "TRANSFER_HOTLINE"
+                should_transfer = True
+            elif intent == "unclear" and retry_count >= 3:
+                new_state = "FINISH"
+                should_hangup = True
+            else:
+                new_state = "TALK_WITH_STUDENT"
+
         else:
-            # Loopback
             new_state = current_state
 
     # Default from transition table
