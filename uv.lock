@@ -471,7 +471,7 @@ wheels = [
 
 [[package]]
 name = "hush-icore"
-version = "0.2.0"
+version = "0.2.2"
 source = { editable = "../Hush-ai/python/hush-icore" }
 dependencies = [
     { name = "orjson" },
