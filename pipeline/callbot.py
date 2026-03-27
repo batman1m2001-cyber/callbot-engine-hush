@@ -44,12 +44,10 @@ def callbot_pipeline(wav_path, script_data):
     source = wav_source(wav_path=wav_path)
 
     audio = AudioProcessor(
-        name="audio",
         inputs={"raw_chunk": source["raw_chunk"], "cmc_time": source["cmc_time"]},
     )
 
     vad = VadDetector(
-        name="vad",
         inputs={
             "audio": audio["audio"],
             "cmc_time": audio["cmc_time"],
@@ -58,9 +56,7 @@ def callbot_pipeline(wav_path, script_data):
     )
 
     stt = TritonOp(
-        name="stt",
-        url="192.168.1.212:8001",
-        model_name="fastconformer_asr",
+        resource="stt",
         inputs_map={"AUDIO_SIGNAL": "speech_audio"},
         outputs_map={"TRANSCRIPT": "transcript"},
         inputs={"speech_audio": vad["speech_audio"]},
@@ -118,12 +114,10 @@ def callbot_pipeline_multi(wav_paths, script_data):
     source = multi_wav_source(wav_paths=wav_paths)
 
     audio = AudioProcessor(
-        name="audio",
         inputs={"raw_chunk": source["raw_chunk"], "cmc_time": source["cmc_time"]},
     )
 
     vad = VadDetector(
-        name="vad",
         inputs={
             "audio": audio["audio"],
             "cmc_time": audio["cmc_time"],
@@ -132,9 +126,7 @@ def callbot_pipeline_multi(wav_paths, script_data):
     )
 
     stt = TritonOp(
-        name="stt",
-        url="192.168.1.212:8001",
-        model_name="fastconformer_asr",
+        resource="stt",
         inputs_map={"AUDIO_SIGNAL": "speech_audio"},
         outputs_map={"TRANSCRIPT": "transcript"},
         inputs={"speech_audio": vad["speech_audio"]},
