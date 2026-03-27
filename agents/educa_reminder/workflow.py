@@ -16,6 +16,7 @@ from agents.educa_reminder.ops.state_transition import state_transition
 from agents.educa_reminder.ops.generate_rule import generate_rule
 from agents.educa_reminder.ops.merge import merge_intent, merge_response
 from agents.educa_reminder.ops.skip import skip_classify, skip_generate
+from agents.educa_reminder.ops.call_result import build_call_result
 
 
 @graph
@@ -111,17 +112,30 @@ def educa_workflow(
         script_data=script_data,
     )
 
+    # ── Node 7: CRM call result ──
+    crm = build_call_result(
+        current_state=trans["new_state"],
+        intent=m_intent["intent"],
+        previous_state=trans["previous_state"],
+        customer_speech=customer_speech,
+        customer_confirmed=trans["customer_confirmed"],
+        new_phone_number=trans["new_phone_number"],
+        script_data=script_data,
+    )
+
     # ── Forward key outputs to PARENT ──
     m_intent["intent"] >> PARENT["intent"]
     m_intent["extraction_data"] >> PARENT["extraction_data"]
     trans["new_state"] >> PARENT["new_state"]
     trans["should_transfer"] >> PARENT["should_transfer"]
     trans["should_hangup"] >> PARENT["should_hangup"]
+    crm["call_result"] >> PARENT["call_result"]
 
     # ── Wiring ──
     START >> norm >> detect >> router1
     router1 >> ctx >> classify >> ~m_intent
     router1 >> skip_cls >> ~m_intent
-    m_intent >> trans >> gen_rule >> router2
+    m_intent >> trans >> [gen_rule, crm]
+    gen_rule >> router2
     router2 >> gen_llm >> ~m_response >> END
     router2 >> skip_gen >> ~m_response
