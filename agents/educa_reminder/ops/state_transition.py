@@ -23,6 +23,8 @@ def state_transition(
     previous_state = current_state
     should_transfer = False
     should_hangup = False
+    customer_confirmed = False
+    new_phone_number = ""
 
     # Track retries
     if intent in RETRY_INTENTS:
@@ -47,6 +49,7 @@ def state_transition(
     elif intent == "confirm":
         if current_state == "CONFIRM_CUSTOMER":
             new_state = "REMINDER"
+            customer_confirmed = True
         else:
             new_state = current_state
 
@@ -76,6 +79,8 @@ def state_transition(
     elif intent == "read_phone":
         new_state = "FINISH"
         should_hangup = True
+        # Extract phone number from quick_detect extraction_data
+        new_phone_number = extraction_data.get("phone_number", "")
     elif intent in ("other_number", "invalid_phone"):
         max_r = MAX_RETRIES.get(intent, 2)
         if counts.get(intent, 0) >= max_r:
@@ -162,4 +167,6 @@ def state_transition(
         "should_transfer": should_transfer,
         "should_hangup": should_hangup,
         "intent_retry_counts": counts,
+        "customer_confirmed": customer_confirmed,
+        "new_phone_number": new_phone_number,
     }
