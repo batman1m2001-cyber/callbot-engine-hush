@@ -89,29 +89,34 @@ class DenoiseClassifier(BaseOp):
         self,
         transcript: str,
         embedding: Optional[np.ndarray] = None,
-    ) -> Dict[str, Any]:
+    ):
         """Classify segment as speech or noise.
 
-        If no embedding provided, pass through transcript unchanged.
-        If embedding provided, run denoise model:
-            - prob >= threshold → speech → keep transcript
-            - prob < threshold → noise → suppress transcript (empty string)
+        Generator: yields only if speech detected. Noise = no yield (PENDING).
+        Downstream ops only trigger for real speech, skipping noise-only segments.
+
+        If no embedding provided, pass through (assume speech).
         """
         if embedding is None or len(transcript.strip()) == 0:
-            return {
-                "transcript": transcript,
-                "is_speech": True,
-                "speech_prob": 1.0,
-            }
+            # No embedding or empty transcript — pass through as speech
+            if transcript and transcript.strip():
+                yield {
+                    "transcript": transcript,
+                    "is_speech": True,
+                    "speech_prob": 1.0,
+                }
+            return
 
         speech_prob = self._classify(embedding)
         is_speech = speech_prob >= self.threshold
 
-        return {
-            "transcript": transcript if is_speech else "",
-            "is_speech": is_speech,
-            "speech_prob": speech_prob,
-        }
+        if is_speech:
+            yield {
+                "transcript": transcript,
+                "is_speech": True,
+                "speech_prob": speech_prob,
+            }
+        # else: noise — no yield, downstream skipped
 
     def _classify(self, embedding: np.ndarray) -> float:
         """Run ConvTransformer denoise inference with streaming state.

@@ -40,14 +40,33 @@ triton:
   stt:
     url: ${TRITON_URL:192.168.1.212:8001}
     model: fastconformer_asr
+    inputs_map:
+      AUDIO_SIGNAL: speech_audio
+    outputs_map:
+      TRANSCRIPT: transcript
+      EMBEDDING: embedding
 
   tts-fastspeech2:
     url: ${TTS_TRITON_URL:192.168.1.212:3001}
     model: fastspeech2
+    inputs_map:
+      texts: texts
+      src_lens.1: src_lens
+      max_src_len: max_src_len
+      p_control: p_control
+      e_control: e_control
+      d_control: d_control
+    outputs_map:
+      postnet_output: postnet_output
+      mel_lens: mel_lens
 
   tts-hifigan:
     url: ${TTS_TRITON_URL:192.168.1.212:3001}
     model: hifigan
+    inputs_map:
+      mels: mels
+    outputs_map:
+      audio: audio_raw
 
 # =============================================================================
 # ONNX Models (local inference)

@@ -72,8 +72,6 @@ def test_pipeline(wav_path):
 
     stt = TritonOp(
         resource="stt",
-        inputs_map={"AUDIO_SIGNAL": "speech_audio"},
-        outputs_map={"TRANSCRIPT": "transcript"},
         inputs={"speech_audio": vad["speech_audio"]},
     )
 

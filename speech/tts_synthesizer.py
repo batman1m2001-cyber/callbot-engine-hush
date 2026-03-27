@@ -152,18 +152,6 @@ def tts_pipeline(text):
     # Op 2: FastSpeech2 — tokens → mel spectrogram
     fs2 = TritonOp(
         resource="tts-fastspeech2",
-        inputs_map={
-            "texts": "texts",
-            "src_lens.1": "src_lens",
-            "max_src_len": "max_src_len",
-            "p_control": "p_control",
-            "e_control": "e_control",
-            "d_control": "d_control",
-        },
-        outputs_map={
-            "postnet_output": "postnet_output",
-            "mel_lens": "mel_lens",
-        },
         inputs={
             "texts": phonemes["texts"],
             "src_lens": phonemes["src_lens"],
@@ -183,8 +171,6 @@ def tts_pipeline(text):
     # Op 4: HiFi-GAN — mel → waveform
     hifigan = TritonOp(
         resource="tts-hifigan",
-        inputs_map={"mels": "mels"},
-        outputs_map={"audio": "audio_raw"},
         inputs={"mels": mel["mels"]},
     )
 

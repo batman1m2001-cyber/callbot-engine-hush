@@ -9,6 +9,7 @@ from hush.providers.ops import TritonOp
 
 from speech.audio_processor import AudioProcessor
 from speech.vad_detector import VadDetector
+from speech.denoise_classifier import DenoiseClassifier
 from speech.tts_synthesizer import tts_pipeline
 
 from agents.educa_reminder.workflow import educa_workflow
@@ -57,14 +58,20 @@ def callbot_pipeline(wav_path, script_data):
 
     stt = TritonOp(
         resource="stt",
-        inputs_map={"AUDIO_SIGNAL": "speech_audio"},
-        outputs_map={"TRANSCRIPT": "transcript"},
         inputs={"speech_audio": vad["speech_audio"]},
+    )
+
+    # ── Denoise: suppress noise-only segments ──
+    denoise = DenoiseClassifier(
+        inputs={
+            "transcript": stt["transcript"],
+            "embedding": stt["embedding"],
+        },
     )
 
     # ── Brain (per-turn, reads shared state) ──
     workflow = educa_workflow(
-        customer_speech=stt["transcript"],
+        customer_speech=denoise["transcript"],
         agent_speech=PARENT["last_agent_response"],
         current_state=PARENT["current_state"],
         script_data=script_data,
@@ -74,7 +81,7 @@ def callbot_pipeline(wav_path, script_data):
 
     # ── Update shared state ──
     update = update_conversation(
-        transcript=stt["transcript"],
+        transcript=denoise["transcript"],
         response=workflow["response"],
         intent=workflow["intent"],
         new_state=workflow["new_state"],
@@ -95,7 +102,7 @@ def callbot_pipeline(wav_path, script_data):
     workflow["new_state"] >> PARENT["new_state"]
 
     # ── Wiring ──
-    START >> source >> audio >> vad >> stt >> workflow >> update >> tts >> END
+    START >> source >> audio >> vad >> stt >> denoise >> workflow >> update >> tts >> END
 
 
 @graph
@@ -127,8 +134,6 @@ def callbot_pipeline_multi(wav_paths, script_data):
 
     stt = TritonOp(
         resource="stt",
-        inputs_map={"AUDIO_SIGNAL": "speech_audio"},
-        outputs_map={"TRANSCRIPT": "transcript"},
         inputs={"speech_audio": vad["speech_audio"]},
     )
 
