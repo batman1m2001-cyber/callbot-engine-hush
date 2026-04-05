@@ -95,7 +95,7 @@ def foreground_detect(audio, bg: dict) -> dict:
 
 
 @op
-async def speech_segmenter(
+def speech_segmenter(
     audio, cmc_time: int,
     speech_prob: float, is_foreground: bool,
     sm: dict, possible_ends: list, speech_buffer: deque, temp_buffer: deque,
