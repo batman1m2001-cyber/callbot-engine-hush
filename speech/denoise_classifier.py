@@ -53,7 +53,6 @@ class DenoiseClassifier(BaseOp):
         self,
         model_path: str = "models/denoise.onnx",
         threshold: float = 0.63,
-        max_history: int = 24,
         pad_length: int = 128,
         inputs: Optional[Dict[str, Any]] = None,
         outputs: Optional[Dict[str, Any]] = None,
@@ -74,16 +73,12 @@ class DenoiseClassifier(BaseOp):
         self.outputs = self._merge_params(parsed_outputs, self._normalize_params(outputs))
 
         self.threshold = threshold
-        self.max_history = max_history
         self.pad_length = pad_length
 
         # ONNX session (shared)
         self._session = _get_denoise_session(model_path)
 
-        # Per-call state
-        self._embedding_history = []  # list of conv outputs (1, 256) each
-
-        self.core = self._process
+        self._set_core(self._process)
 
     async def _process(
         self,
@@ -119,64 +114,50 @@ class DenoiseClassifier(BaseOp):
         # else: noise — no yield, downstream skipped
 
     def _classify(self, embedding: np.ndarray) -> float:
-        """Run ConvTransformer denoise inference with streaming state.
+        """Run denoise inference.
 
-        ONNX model expected inputs:
-            - embedding: (1, 1024, T) float32
-            - history_len: (1,) int64 — number of past embeddings
-            - past_embeddings: (1, max_history, 256) float32 — padded history
+        ONNX model inputs:
+            - embeddings: (batch, seq_len, 1024, time) float32
+            - lengths: (batch,) int64
 
-        ONNX model expected outputs:
-            - speech_prob: (1,) float32
-            - conv_output: (1, 256) float32 — to append to history
+        ONNX model outputs:
+            - logits: (batch, seq_len) float32 — apply sigmoid for probability
         """
-        # Pad/truncate time dimension to pad_length
+        # Normalize to (1024, T)
+        if embedding.ndim == 1:
+            embedding = embedding[np.newaxis, :]  # (1, T) — unusual shape
         if embedding.ndim == 2:
-            embedding = embedding[np.newaxis, ...]  # (1, 1024, T)
+            # Could be (1024, T) or (T, 1024) — assume (1024, T)
+            pass
 
-        T = embedding.shape[2]
+        # Pad/truncate time dimension to pad_length
+        T = embedding.shape[-1]
         if T < self.pad_length:
-            padded = np.zeros((1, embedding.shape[1], self.pad_length), dtype=np.float32)
-            padded[:, :, :T] = embedding
-            embedding = padded
+            pad_widths = [(0, 0)] * (embedding.ndim - 1) + [(0, self.pad_length - T)]
+            embedding = np.pad(embedding, pad_widths)
         elif T > self.pad_length:
-            embedding = embedding[:, :, :self.pad_length]
+            embedding = embedding[..., :self.pad_length]
 
         embedding = embedding.astype(np.float32)
 
-        # Build history tensor
-        history_len = len(self._embedding_history)
-        past_emb = np.zeros((1, self.max_history, 256), dtype=np.float32)
-        for i, h in enumerate(self._embedding_history[-self.max_history:]):
-            past_emb[0, i, :] = h.flatten()[:256]
+        # Model expects (batch=1, seq_len=1, 1024, time)
+        if embedding.ndim == 2:
+            embedding = embedding[np.newaxis, np.newaxis, :]  # (1, 1, 1024, T)
+        elif embedding.ndim == 3:
+            embedding = embedding[np.newaxis, :]  # (1, seq_len, 1024, T)
+
+        lengths = np.array([1], dtype=np.int64)  # one segment per call
 
         try:
-            # Try full model with history
             ort_outs = self._session.run(
                 None,
-                {
-                    "embedding": embedding,
-                    "history_len": np.array([history_len], dtype=np.int64),
-                    "past_embeddings": past_emb,
-                },
+                {"embeddings": embedding, "lengths": lengths},
             )
-            speech_prob = float(ort_outs[0][0])
-
-            # Update history with conv output
-            if len(ort_outs) > 1:
-                conv_out = ort_outs[1]
-                self._embedding_history.append(conv_out)
-                if len(self._embedding_history) > self.max_history:
-                    self._embedding_history = self._embedding_history[-self.max_history:]
-
+            # logits: (batch, seq_len) — take first segment, apply sigmoid
+            logit = float(ort_outs[0][0, 0])
+            speech_prob = float(1.0 / (1.0 + np.exp(-logit)))
         except Exception as e:
-            # Fallback: simple model without history (just embedding → prob)
-            LOGGER.warning("Denoise full model failed, trying simple: %s", e)
-            try:
-                ort_outs = self._session.run(None, {"embedding": embedding})
-                speech_prob = float(ort_outs[0][0])
-            except Exception as e2:
-                LOGGER.error("Denoise inference failed: %s", e2)
-                speech_prob = 1.0  # Default to speech on failure
+            LOGGER.error("Denoise inference failed: %s", e)
+            speech_prob = 1.0  # Default to speech on failure
 
         return speech_prob

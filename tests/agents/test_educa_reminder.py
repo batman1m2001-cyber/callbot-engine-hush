@@ -2,9 +2,11 @@
 
 import asyncio
 import os
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).parent.parent.parent
+sys.path.insert(0, str(ROOT))
 
 from hush.core import Hush
 from agents.educa_reminder.workflow import educa_workflow
@@ -21,7 +23,7 @@ SCRIPT_DATA = {
 }
 
 
-async def test_case(name, customer_speech, agent_speech, current_state, intent_retry_counts=None):
+async def run_case(name, customer_speech, agent_speech, current_state, intent_retry_counts=None):
     """Run one test case."""
     print(f"\n{'='*60}")
     print(f"TEST: {name}")
@@ -52,7 +54,7 @@ async def main():
     print("=" * 60)
 
     # Test 1: Student joining — quick detect bypass, rule response
-    await test_case(
+    await run_case(
         "Student joining (REMINDER)",
         "bé đang vào rồi em",
         "Chào anh chị, em gọi từ chương trình AI CLASS nhắc lịch học của bé Minh lúc 19:00",
@@ -60,7 +62,7 @@ async def main():
     )
 
     # Test 2: Silent — quick detect
-    await test_case(
+    await run_case(
         "Silent (REMINDER)",
         "",
         "Chào anh chị",
@@ -68,7 +70,7 @@ async def main():
     )
 
     # Test 3: Confirm customer — LLM classify
-    await test_case(
+    await run_case(
         "Confirm (CONFIRM_CUSTOMER)",
         "vâng đúng rồi",
         "Anh chị có phải là phụ huynh của bé Minh không ạ?",
@@ -76,7 +78,7 @@ async def main():
     )
 
     # Test 4: Busy — LLM classify
-    await test_case(
+    await run_case(
         "Busy (REMINDER)",
         "đang bận lắm",
         "Chào anh chị, em gọi từ chương trình AI CLASS",
@@ -84,7 +86,7 @@ async def main():
     )
 
     # Test 5: Technical issue — LLM classify, transfer hotline
-    await test_case(
+    await run_case(
         "Technical issue (REMINDER)",
         "con vào mãi không được em ạ",
         "Chào anh chị, bé Minh có buổi học lúc 19:00",
@@ -92,7 +94,7 @@ async def main():
     )
 
     # Test 6: Phone number — quick detect in ASK_PHONE
-    await test_case(
+    await run_case(
         "Read phone (ASK_PHONE)",
         "số 0987654321 em nhé",
         "Anh chị cho em xin số điện thoại liên hệ ạ",
@@ -100,7 +102,7 @@ async def main():
     )
 
     # Test 7: Fallback with retry
-    await test_case(
+    await run_case(
         "Fallback retry (REMINDER)",
         "trời mưa quá",
         "Bé Minh có buổi học lúc 19:00 anh chị nhắc bé vào lớp giúp em nhé",

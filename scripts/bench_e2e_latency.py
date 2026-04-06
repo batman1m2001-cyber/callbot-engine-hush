@@ -112,7 +112,7 @@ async def measure_one_call(call_id: int, wav_file: str, triton_client, llm_clien
     text = re.sub(r"[,;.?\-!:]", " ", response_text)
     text = clean_vietnamese_text(text)
 
-    from pipeline.mock_source import CHUNK_SIZE
+    from pipeline.callbot import TELCO_CHUNK as CHUNK_SIZE
     lexicon_path = os.path.join(os.path.dirname(__file__), "../speech/tts/vi-new-lexicon.txt")
     lexicon = {}
     with open(lexicon_path, "r", encoding="utf-8") as f:

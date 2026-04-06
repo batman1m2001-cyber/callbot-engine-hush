@@ -14,6 +14,8 @@ import numpy as np
 from hush.core import graph, START, END, PARENT
 from hush.core.ops import op
 from hush.providers.ops import TritonOp
+from speech.tts import vietnamese_phonemes as viphonemes
+from speech.tts import text_to_sequence, clean_vietnamese_text
 
 LOGGER = logging.getLogger(__name__)
 

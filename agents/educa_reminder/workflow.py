@@ -129,13 +129,13 @@ def educa_workflow(
     trans["new_state"] >> PARENT["new_state"]
     trans["should_transfer"] >> PARENT["should_transfer"]
     trans["should_hangup"] >> PARENT["should_hangup"]
-    crm["call_result"] >> PARENT["call_result"]
 
     # ── Wiring ──
     START >> norm >> detect >> router1
     router1 >> ctx >> classify >> ~m_intent
     router1 >> skip_cls >> ~m_intent
     m_intent >> trans >> [gen_rule, crm]
+    crm >> END
     gen_rule >> router2
     router2 >> gen_llm >> ~m_response >> END
     router2 >> skip_gen >> ~m_response

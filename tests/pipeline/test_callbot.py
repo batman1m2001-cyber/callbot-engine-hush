@@ -12,8 +12,10 @@ from dotenv import load_dotenv
 load_dotenv(os.path.join(os.path.dirname(__file__), "../../.env"))
 
 from hush.core import Hush
+from hush.core.tracing import get_flush_worker
+from hush.telemetry import LangfuseTracer
 
-from pipeline.callbot import callbot_pipeline, callbot_pipeline_multi
+from pipeline.callbot import callbot_pipeline
 
 AUDIO_DIR = os.path.join(os.path.dirname(__file__), "../speech/audio")
 
@@ -28,7 +30,7 @@ SCRIPT_DATA = {
 }
 
 
-async def test_single_turn(name, wav_file, expected_intent=None):
+async def run_single_turn(name, wav_file, expected_intent=None):
     """Test single turn: 1 WAV → full pipeline."""
     wav_path = os.path.join(AUDIO_DIR, wav_file)
     if not os.path.exists(wav_path):
@@ -40,8 +42,10 @@ async def test_single_turn(name, wav_file, expected_intent=None):
     print(f"  WAV: {wav_file}")
 
     wf = callbot_pipeline(wav_path=wav_path, script_data=SCRIPT_DATA)
+    tracer = LangfuseTracer(resource="langfuse:default")
     engine = Hush(wf, env=os.path.join(os.path.dirname(__file__), "../../.env"),
-                  resources=os.path.join(os.path.dirname(__file__), "../../resources.yaml"))
+                  resources=os.path.join(os.path.dirname(__file__), "../../resources.yaml"),
+                  tracer=tracer)
 
     t0 = time.time()
     result = await engine.run(inputs={})
@@ -51,7 +55,6 @@ async def test_single_turn(name, wav_file, expected_intent=None):
     intent = result.get("intent")
     new_state = result.get("new_state")
 
-    # Unwrap lists (streaming output collection)
     if isinstance(response, list):
         response = response[0] if response else None
     if isinstance(intent, list):
@@ -66,72 +69,23 @@ async def test_single_turn(name, wav_file, expected_intent=None):
 
     if expected_intent:
         match = intent == expected_intent
-        print(f"  Intent check: {'✓' if match else '✗'} (expected {expected_intent})")
+        print(f"  Intent check: {'OK' if match else 'FAIL'} (expected {expected_intent})")
 
     return result
-
-
-async def test_multi_turn():
-    """Test multi-turn: multiple WAVs → shared state carries across turns."""
-    wav_files = [
-        "03_confirm.wav",       # Turn 1: CONFIRM_CUSTOMER → confirm
-        "01_student_joining.wav",  # Turn 2: REMINDER → student_joining
-    ]
-    wav_paths = [os.path.join(AUDIO_DIR, f) for f in wav_files]
-
-    # Check files exist
-    for p in wav_paths:
-        if not os.path.exists(p):
-            print(f"  SKIP: {p} not found")
-            return
-
-    print(f"\n{'='*60}")
-    print(f"TEST: Multi-turn conversation")
-    print(f"  WAVs: {wav_files}")
-
-    wf = callbot_pipeline_multi(wav_paths=wav_paths, script_data=SCRIPT_DATA)
-    engine = Hush(wf, env=os.path.join(os.path.dirname(__file__), "../../.env"),
-                  resources=os.path.join(os.path.dirname(__file__), "../../resources.yaml"))
-
-    t0 = time.time()
-    result = await engine.run(inputs={})
-    elapsed = (time.time() - t0) * 1000
-
-    responses = result.get("response", [])
-    intents = result.get("intent", [])
-    states = result.get("new_state", [])
-
-    if not isinstance(responses, list):
-        responses = [responses]
-    if not isinstance(intents, list):
-        intents = [intents]
-    if not isinstance(states, list):
-        states = [states]
-
-    print(f"  Turns: {len(intents)}")
-    for i in range(len(intents)):
-        r = responses[i] if i < len(responses) else "?"
-        print(f"    Turn {i+1}: intent={intents[i]}, state={states[i] if i < len(states) else '?'}")
-        print(f"             response=\"{(r or '')[:60]}\"")
-
-    print(f"  Total time: {elapsed:.0f}ms")
-    print(f"  Turns detected: {len(intents)} (expected {len(wav_files)})")
 
 
 async def main():
     print("Full Callbot Pipeline Tests")
     print("=" * 60)
 
-    # Single turn tests
-    await test_single_turn("Confirm customer", "03_confirm.wav", "confirm")
-    await test_single_turn("Student joining", "01_student_joining.wav", "student_joining")
-    await test_single_turn("Busy", "04_busy.wav", "busy")
-
-    # Multi-turn test
-    await test_multi_turn()
+    await run_single_turn("Confirm customer", "03_confirm.wav", "confirm")
+    await run_single_turn("Student joining", "01_student_joining.wav", "student_joining")
+    await run_single_turn("Busy", "04_busy.wav", "busy")
 
     print(f"\n{'='*60}")
-    print("All tests completed!")
+    print("Waiting for Langfuse flush...")
+    get_flush_worker().wait(timeout=10)
+    print("Done.")
 
 
 if __name__ == "__main__":

@@ -49,7 +49,7 @@ async def wav_source(wav_path: str):
 
 
 @graph
-def test_pipeline(wav_path):
+def speech_pipeline(wav_path):
     """Audio source → AudioProcessor → VadDetector → STT."""
     source = wav_source(wav_path=wav_path)
 
@@ -92,7 +92,7 @@ async def run_test(name: str, filename: str, expected_segments: int, expected_wo
     print(f"TEST: {name}")
     print(f"  File: {filename}")
 
-    wf = test_pipeline(wav_path=filepath)
+    wf = speech_pipeline(wav_path=filepath)
     engine = Hush(wf)
 
     start = time.time()
