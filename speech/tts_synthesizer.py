@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Optional
 
 import numpy as np
+import soxr
 
 from hush.core import graph, START, END, PARENT
 from hush.core.ops import op
@@ -135,6 +136,12 @@ def postprocess_audio(audio_raw: np.ndarray, lengths_samples: np.ndarray) -> dic
         "audio": audio,
         "audio_duration_ms": audio_duration_ms,
     }
+
+
+@op
+def resample_for_telco(audio: np.ndarray) -> dict:
+    """Resample TTS output (22050Hz) to telco rate (8kHz)."""
+    return {"audio": soxr.resample(audio.astype(np.float32), 22050, 8000)}
 
 
 @graph

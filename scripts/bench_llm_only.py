@@ -14,12 +14,21 @@ import httpx
 
 API_KEY = os.getenv("ANTHROPIC_API_KEY")
 API_URL = "https://api.anthropic.com/v1/messages"
-MODEL = "claude-3-haiku-20240307"
 
-PROMPT = "Classify intent: 'bé đang vào rồi em'. Reply <result>student_joining</result>"
+MODELS = {
+    "haiku-3":   "claude-3-haiku-20240307",
+    "haiku-4.5": "claude-haiku-4-5-20251001",
+}
+
+# Realistic classify prompt (short version)
+PROMPT = (
+    "Phân loại ý định: 'anh bận lắm gọi lại sau đi'. "
+    "Intents: busy, student_joining, fallback. "
+    "Trả lời trong <result></result>."
+)
 
 
-async def call_llm(call_id: int, client: httpx.AsyncClient) -> dict:
+async def call_llm(call_id: int, model: str, client: httpx.AsyncClient) -> dict:
     t0 = time.perf_counter()
     resp = await client.post(
         API_URL,
@@ -29,42 +38,37 @@ async def call_llm(call_id: int, client: httpx.AsyncClient) -> dict:
             "content-type": "application/json",
         },
         json={
-            "model": MODEL,
+            "model": model,
             "max_tokens": 50,
             "messages": [{"role": "user", "content": PROMPT}],
         },
         timeout=30,
     )
     elapsed = (time.perf_counter() - t0) * 1000
-    status = resp.status_code
-    return {"call_id": call_id, "status": status, "time_ms": elapsed}
+    return {"call_id": call_id, "status": resp.status_code, "time_ms": elapsed}
 
 
-async def bench(ccu: int):
-    print(f"\nCCU={ccu}: {ccu} concurrent LLM calls")
+async def bench(model_label: str, model: str, ccu: int):
     async with httpx.AsyncClient() as client:
-        # Warmup
-        await call_llm(-1, client)
+        await call_llm(-1, model, client)  # warmup
 
         t0 = time.perf_counter()
-        tasks = [call_llm(i, client) for i in range(ccu)]
-        results = await asyncio.gather(*tasks)
+        results = await asyncio.gather(*[call_llm(i, model, client) for i in range(ccu)])
         total = (time.perf_counter() - t0) * 1000
 
     times = [r["time_ms"] for r in results]
-    errors = [r for r in results if r["status"] != 200]
-    avg = sum(times) / len(times)
-    fastest = min(times)
-    slowest = max(times)
-
-    print(f"  Total: {total:.0f}ms  Avg: {avg:.0f}ms  Fast: {fastest:.0f}ms  Slow: {slowest:.0f}ms  Errors: {len(errors)}")
-    for r in sorted(results, key=lambda x: x["call_id"]):
-        print(f"    [{r['call_id']:2d}] {r['status']} {r['time_ms']:.0f}ms")
+    errors = sum(1 for r in results if r["status"] != 200)
+    print(f"  [{model_label}] CCU={ccu:2d}  total={total:5.0f}ms  avg={sum(times)/len(times):5.0f}ms  "
+          f"min={min(times):5.0f}ms  max={max(times):5.0f}ms  errors={errors}")
 
 
 async def main():
-    for ccu in [1, 2, 4, 8]:
-        await bench(ccu)
+    print(f"Prompt: {PROMPT!r}\n")
+    for label, model in MODELS.items():
+        print(f"=== {label} ({model}) ===")
+        for ccu in [1, 2, 4, 8]:
+            await bench(label, model, ccu)
+        print()
 
 
 if __name__ == "__main__":

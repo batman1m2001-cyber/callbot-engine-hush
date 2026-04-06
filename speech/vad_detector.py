@@ -102,11 +102,13 @@ class VadDetector(BaseOp):
         min_silence_duration_ms: float = 500,
         speech_pad_start_ms: float = 500,
         speech_pad_end_ms: float = 300,
+        silence_timeout: float = 0.0,
         inputs: Optional[Dict[str, Any]] = None,
         outputs: Optional[Dict[str, Any]] = None,
         **kwargs,
     ):
         super().__init__(**kwargs)
+        self.silence_timeout = silence_timeout  # 0 = disabled
 
         parsed_inputs = {
             "audio": Param(required=True),
@@ -153,6 +155,7 @@ class VadDetector(BaseOp):
             "possible_ends": [],
             "bg_model": OnlineGaussianModel(self.chunk_size, self.rate),
             "start_time": time.time(),
+            "last_speech_time": time.time(),
         }
 
     # ── run() override: bind per-call buffers via ContextVar ──
@@ -218,6 +221,19 @@ class VadDetector(BaseOp):
                 for item in b["temp_buffer"]:
                     b["speech_buffer"].append(item)
                 b["temp_buffer"].clear()
+                b["last_speech_time"] = time.time()
+            elif self.silence_timeout > 0:
+                # No speech — check if silence_timeout exceeded
+                elapsed = time.time() - b["last_speech_time"]
+                if elapsed >= self.silence_timeout:
+                    b["last_speech_time"] = time.time()  # reset timer
+                    yield {
+                        "speech_audio": np.zeros(160, dtype=np.float32),
+                        "speech_duration_ms": 0.0,
+                        "num_chunks": 0,
+                        "cmc_start_time": cmc_time,
+                        "vad_time": int(time.time() * 1000),
+                    }
         else:
             b["speech_buffer"].append((audio, speech_prob, cmc_time))
 
@@ -229,6 +245,7 @@ class VadDetector(BaseOp):
                 if silence_samples >= self.min_silence_samples:
                     segment = self._finalize_segment(b)
                     if segment is not None:
+                        b["last_speech_time"] = time.time()
                         yield segment
                     return
             else:

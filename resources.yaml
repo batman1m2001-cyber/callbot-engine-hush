@@ -12,7 +12,7 @@ llm:
     api_type: anthropic
     api_key: ${ANTHROPIC_API_KEY}
     base_url: https://api.anthropic.com
-    model: claude-haiku-4-5-20251001
+    model: claude-3-haiku-20240307
 
   gpt-4o:
     api_type: openai

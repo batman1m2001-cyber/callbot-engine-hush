@@ -1,6 +1,4 @@
-"""call_result op — CRM mapping: determine ARId, comment, report_result."""
-
-from hush.core.ops import op
+"""call_result — CRM mapping: determine ARId, comment, report_result."""
 
 
 # ── ARId mapping: (state, intent) → ARId ──
@@ -117,7 +115,6 @@ def _determine_final_comment(state: str, intent: str, student_name: str) -> str:
         return f"Cuộc gọi kết thúc ở state {state}"
 
 
-@op
 def build_call_result(
     current_state: str,
     intent: str,
